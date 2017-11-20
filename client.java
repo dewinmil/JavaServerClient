@@ -87,7 +87,11 @@ class clientThread extends Thread{
         ByteBuffer buffer = ByteBuffer.allocate(4096);
         sc.read(buffer);
         String message = new String(buffer.array());
-        System.out.println(message);
+        if(message.trim().equals("Enter your message:")){
+          System.out.printf(message);
+        }else{
+          System.out.println("\n" + message);
+        }
       }
     }
     catch(IOException e){

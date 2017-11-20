@@ -4,13 +4,14 @@ import java.nio.*;
 import java.nio.channels.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.lang.Object;
-
+import java.util.*;
 
 class server
 {
   public static void main(String args[])
   {
   ConcurrentHashMap<String, String> hash = new ConcurrentHashMap<String, String>();
+  ConcurrentHashMap<String, serverThread> threadMap = new ConcurrentHashMap<String, serverThread>();
     try
     {
       ServerSocketChannel c = ServerSocketChannel.open();
@@ -19,7 +20,8 @@ class server
       while(true)
       {
         SocketChannel sc = c.accept();
-        serverThread t = new serverThread(hash, sc);
+        serverThread t = new serverThread(hash, sc, threadMap);
+        threadMap.put(Long.toString(t.getId()), t);
         t.start();
         i++;
       }
@@ -61,19 +63,23 @@ class server
 class serverThread extends Thread{
   SocketChannel sc;
   ConcurrentHashMap<String, String> hash;
-  serverThread(ConcurrentHashMap<String, String> hashmap, SocketChannel channel){
+  ConcurrentHashMap<String, serverThread> threadMap;
+  serverThread(ConcurrentHashMap<String, String> hashmap, SocketChannel channel,
+    ConcurrentHashMap<String, serverThread>  threadPool){
     sc = channel;
     hash = hashmap;
+    threadMap = threadPool;
   }
   long id = getId();
   String key = new String(Long.toString(id));
+  ByteBuffer buffer = ByteBuffer.allocate(4096);
   public void run(){
     try{
-      ByteBuffer buffer = ByteBuffer.allocate(4096);
+      System.out.println("added ID to hash: " + id);
       sc.read(buffer);
       String message = new String(buffer.array());
       System.out.println(message);
-      hash.put(key, message);
+      hash.put(key, message.trim());
       
       boolean loop = true;
       while(loop){
@@ -84,16 +90,71 @@ class serverThread extends Thread{
         if(message.trim().equals("exit")){
           loop = false;
         }
-        if(hash.containsValue(message.trim())){
-          
+        String parts[] = message.split(" ", 2);
+        if(hash.containsValue(parts[0].substring(1))){
+          if(parts[0].substring(0,1).equals("-")){
+            for(String keys: Collections.list(hash.keys())){  
+              if(hash.get(keys).equals(parts[0].substring(1))){
+                System.out.println(keys);
+                serverThread t = threadMap.get(keys);
+                String user = hash.get(keys);
+                t.sendToClient("Received from "+ user + ": " + parts[1]);
+                t.sendToClient("Enter your message: ");
+              }
+            } 
+          }
         }
+
+       
+        if(parts[0].equals("-broadcast")){
+          String user = hash.get(key);
+          for(String keys: Collections.list(hash.keys())){
+            if(!keys.equals(key)){
+              System.out.println(keys);
+              serverThread t = threadMap.get(keys);
+              t.sendToClient("Received from "+ user + ": " + parts[1]);
+              t.sendToClient("Enter your message: "); 
+            }
+          } 
+        }
+
+        if(parts[0].equals("-remove")){
+          System.out.println("is remove");
+          if(hash.containsValue(parts[1].trim())){
+          System.out.println("valid name");
+            for(String keys: Collections.list(hash.keys())){
+              if(hash.get(keys).equals(parts[1].trim())){
+                System.out.println("found name");
+                serverThread t = threadMap.get(keys);
+                //try{
+                  t.interrupt();
+               // }catch(IOException e){
+                  //should throw exception we don't care ignore
+               // }
+                hash.remove(keys);
+                threadMap.remove(keys); 
+              }
+            }
+          } 
+        }
+
+
+
+
         if(message.trim().equals("-users")){
+          String list = "";
           for(String str: hash.values()){  
+             list += str + "\n";
+          }
+            buffer = ByteBuffer.allocate(4096);
+            buffer = ByteBuffer.wrap(list.getBytes());
+            sc.write(buffer);
+
+            System.out.println(list);
+            String str = "Enter your message: ";
             buffer = ByteBuffer.allocate(4096);
             buffer = ByteBuffer.wrap(str.getBytes());
             sc.write(buffer);
-            System.out.println(str);
-          }
         }
       }
     }
@@ -102,4 +163,16 @@ class serverThread extends Thread{
 			
     }
   }
+
+
+  public void sendToClient(String message){
+    try{
+      ByteBuffer buffs = ByteBuffer.wrap(message.getBytes());
+      sc.write(buffs);
+    }catch(IOException e){
+      System.out.println("Caught IO Exception - sendToClient");
+    }
+  }
+
+
 }
