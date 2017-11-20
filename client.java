@@ -82,10 +82,13 @@ class clientThread extends Thread{
   }
   public void run(){
     try{
-      ByteBuffer buffer = ByteBuffer.allocate(4096);
-      sc.read(buffer);
-      String message = new String(buffer.array());
-      System.out.println(message);
+      boolean loop = true;
+      while(loop){
+        ByteBuffer buffer = ByteBuffer.allocate(4096);
+        sc.read(buffer);
+        String message = new String(buffer.array());
+        System.out.println(message);
+      }
     }
     catch(IOException e){
       System.out.println("Exiting Client");

@@ -15,11 +15,13 @@ class server
     {
       ServerSocketChannel c = ServerSocketChannel.open();
       c.bind(new InetSocketAddress(getPortNum()));
+      int i = 0;
       while(true)
       {
         SocketChannel sc = c.accept();
         serverThread t = new serverThread(hash, sc);
         t.start();
+        i++;
       }
     }
     catch(IOException e)
@@ -63,9 +65,9 @@ class serverThread extends Thread{
     sc = channel;
     hash = hashmap;
   }
+  long id = getId();
+  String key = new String(Long.toString(id));
   public void run(){
-    long id = getId();
-    String key = new String(Long.toString(id));
     try{
       ByteBuffer buffer = ByteBuffer.allocate(4096);
       sc.read(buffer);
@@ -81,6 +83,17 @@ class serverThread extends Thread{
         System.out.println(message);
         if(message.trim().equals("exit")){
           loop = false;
+        }
+        if(hash.containsValue(message.trim())){
+          
+        }
+        if(message.trim().equals("-users")){
+          for(String str: hash.values()){  
+            buffer = ByteBuffer.allocate(4096);
+            buffer = ByteBuffer.wrap(str.getBytes());
+            sc.write(buffer);
+            System.out.println(str);
+          }
         }
       }
     }
