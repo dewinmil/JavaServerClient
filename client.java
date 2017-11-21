@@ -28,14 +28,13 @@ class client
       boolean loop = true;
       while(loop){
         m = cons.readLine("Enter your message: ");
-        buff = ByteBuffer.wrap(m.getBytes());
-        //ByteBuffer rec = ByteBuffer.allocate(4096);
-        sc.write(buff);
-        //buff.flip();
-        //sc.read(buff);
-        //received = new String(buff.array());
-        //System.out.println(received);
-        if(m.equals("exit")){
+        if(t.isAlive()){
+          buff = ByteBuffer.wrap(m.getBytes());
+          sc.write(buff);
+          if(m.equals("exit")){
+            loop = false;
+          }
+        }else{
           loop = false;
         }
       }
@@ -43,7 +42,8 @@ class client
     }
     catch(IOException e)
     {
-      System.out.println("Got an exception.");
+      //System.out.println("You have been removed from the server.");
+      //expect io exception when removed from server / sc is closed
     }
   }
 
@@ -89,6 +89,9 @@ class clientThread extends Thread{
         String message = new String(buffer.array());
         if(message.trim().equals("Enter your message:")){
           System.out.printf(message);
+        }else if(message.trim().equals("-17b482--exit/call")){
+          loop = false;
+          System.out.println("\n" + "You have been removed from the server");
         }else{
           System.out.println("\n" + message);
         }

@@ -61,6 +61,7 @@ class server
 
 
 class serverThread extends Thread{
+  boolean loop = true;
   SocketChannel sc;
   ConcurrentHashMap<String, String> hash;
   ConcurrentHashMap<String, serverThread> threadMap;
@@ -81,7 +82,6 @@ class serverThread extends Thread{
       System.out.println(message);
       hash.put(key, message.trim());
       
-      boolean loop = true;
       while(loop){
         buffer = ByteBuffer.allocate(4096);
         sc.read(buffer);
@@ -97,7 +97,7 @@ class serverThread extends Thread{
               if(hash.get(keys).equals(parts[0].substring(1))){
                 System.out.println(keys);
                 serverThread t = threadMap.get(keys);
-                String user = hash.get(keys);
+                String user = hash.get(key);
                 t.sendToClient("Received from "+ user + ": " + parts[1]);
                 t.sendToClient("Enter your message: ");
               }
@@ -126,11 +126,10 @@ class serverThread extends Thread{
               if(hash.get(keys).equals(parts[1].trim())){
                 System.out.println("found name");
                 serverThread t = threadMap.get(keys);
-                //try{
-                  t.interrupt();
-               // }catch(IOException e){
-                  //should throw exception we don't care ignore
-               // }
+                //t.interrupt();
+                t.sendToClient("-17b482--exit/call");
+                t.breakLoop();
+                
                 hash.remove(keys);
                 threadMap.remove(keys); 
               }
@@ -141,7 +140,7 @@ class serverThread extends Thread{
 
 
 
-        if(message.trim().equals("-users")){
+    if(message.trim().equals("-users")){
           String list = "";
           for(String str: hash.values()){  
              list += str + "\n";
@@ -174,5 +173,8 @@ class serverThread extends Thread{
     }
   }
 
+  public void breakLoop(){
+    loop = false;
+  }
 
 }
