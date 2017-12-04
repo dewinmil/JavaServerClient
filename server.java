@@ -5,6 +5,9 @@ import java.nio.channels.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.lang.Object;
 import java.util.*;
+import javax.crypto.*;
+import javax.crypto.spec.*;
+import java.security.*;
 
 class server
 {
@@ -12,6 +15,9 @@ class server
   {
   ConcurrentHashMap<String, String> hash = new ConcurrentHashMap<String, String>();
   ConcurrentHashMap<String, serverThread> threadMap = new ConcurrentHashMap<String, serverThread>();
+  ConcurrentHashMap<String, byte[]> keyHash = new ConcurrentHashMap<String, byte[]>();
+  cryptotest ct = new cryptotest();
+  ct.setPrivateKey("RSApriv.der");
     try
     {
       ServerSocketChannel c = ServerSocketChannel.open();
@@ -20,7 +26,7 @@ class server
       while(true)
       {
         SocketChannel sc = c.accept();
-        serverThread t = new serverThread(hash, sc, threadMap);
+        serverThread t = new serverThread(hash, sc, threadMap, keyHash);
         threadMap.put(Long.toString(t.getId()), t);
         t.start();
         i++;
@@ -65,20 +71,46 @@ class serverThread extends Thread{
   SocketChannel sc;
   ConcurrentHashMap<String, String> hash;
   ConcurrentHashMap<String, serverThread> threadMap;
+  ConcurrentHashMap<String, byte[]> keyHash;
   serverThread(ConcurrentHashMap<String, String> hashmap, SocketChannel channel,
-    ConcurrentHashMap<String, serverThread>  threadPool){
+    ConcurrentHashMap<String, serverThread>  threadPool,
+    ConcurrentHashMap<String, byte[]> keyList){
     sc = channel;
     hash = hashmap;
     threadMap = threadPool;
+    keyHash = keyList;
   }
   long id = getId();
   String key = new String(Long.toString(id));
-  ByteBuffer buffer = ByteBuffer.allocate(4096);
+  ByteBuffer buffer = ByteBuffer.allocate(256);
+
   public void run(){
+    cryptotest ct = new cryptotest();
+    ct.setPrivateKey("RSApriv.der");
     try{
-      System.out.println("added ID to hash: " + id);
       sc.read(buffer);
-      String message = new String(buffer.array());
+      byte clientKey[] = ct.RSADecrypt(buffer.array());
+      keyHash.put(key, clientKey);
+
+      SecureRandom random = new SecureRandom();
+      random.setSeed(clientKey);
+      byte[] randBytes = new byte[16];
+      random.nextBytes(randBytes);
+      System.out.println(randBytes);
+      IvParameterSpec iv = new IvParameterSpec(randBytes);
+      SecretKey skey = new SecretKeySpec(clientKey, 0, clientKey.length, "AES");
+     
+      buffer = ByteBuffer.allocate(4096);
+     
+
+
+      
+      sc.read(buffer);
+      System.out.println(buffer.position());
+      byte buff[] = ct.decrypt(buffer.array(), skey, iv);
+      //String message = new String(buffer.array());
+      String message = new String(buff);
+      System.out.println("added ID to hash: " + id);
       System.out.println(message);
       hash.put(key, message.trim());
       

@@ -2,7 +2,11 @@ import java.io.*;
 import java.net.*;
 import java.nio.*;
 import java.nio.channels.*;
-
+import javax.crypto.*;
+import javax.crypto.spec.*;
+import java.security.spec.*;
+import java.util.Random;
+import java.security.*;
 class client
 {
   public static void main(String args[])
@@ -10,17 +14,28 @@ class client
 	
     String ip = getIPNum();
     int port = getPortNum();
+    cryptotest ct = new cryptotest();
+    ct.setPublicKey("RSApub.der");
     try
     {
-      
+      SecretKey skey = ct.generateAESKey();
+      byte encrypted[] = ct.RSAEncrypt(skey.getEncoded());
       SocketChannel sc = SocketChannel.open();
       sc.connect(new InetSocketAddress(ip, port));
       Console cons = System.console();
-
-      
+      ByteBuffer buff = ByteBuffer.wrap(encrypted);
+      sc.write(buff);
+ 
       String m = cons.readLine("Enter your userName: ");
-      ByteBuffer buff = ByteBuffer.wrap(m.getBytes());
+      //buff = ByteBuffer.wrap(m.getBytes());
       //ByteBuffer rec = ByteBuffer.allocate(4096);
+      SecureRandom random = new SecureRandom();
+      random.setSeed(skey.getEncoded());
+      byte[] randBytes = new byte[16];
+      random.nextBytes(randBytes);
+      System.out.println(randBytes);
+      IvParameterSpec iv = new IvParameterSpec(randBytes);
+      buff = ByteBuffer.wrap(ct.encrypt(m.getBytes(), skey, iv));
       sc.write(buff);
       
       clientThread t = new clientThread(sc);
