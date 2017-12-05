@@ -42,7 +42,7 @@ class client
       //sc.write(buff);
       System.out.println(sc.write(buff));
 
-      clientThread t = new clientThread(sc);
+      clientThread t = new clientThread(sc, skey, ct);
       t.start();
       boolean loop = true;
       while(loop){
@@ -103,16 +103,36 @@ class client
 
 class clientThread extends Thread{
   SocketChannel sc;
-  clientThread(SocketChannel channel){
+  SecretKey skey;
+  cryptotest ct;
+  clientThread(SocketChannel channel, SecretKey secret, cryptotest crypto){
     sc = channel;
+    skey = secret;
+    ct = crypto;
   }
   public void run(){
     try{
       boolean loop = true;
       while(loop){
-        ByteBuffer buffer = ByteBuffer.allocate(4096);
+        ByteBuffer buffer = ByteBuffer.allocate(16);
         sc.read(buffer);
-        String message = new String(buffer.array());
+
+        byte[] randBytes = buffer.array();
+        IvParameterSpec iv = new IvParameterSpec(randBytes);
+
+        buffer = ByteBuffer.allocate(4096);
+       
+        int buffSize = sc.read(buffer);
+
+        byte[] trimArray = new byte[buffSize];
+
+        for(int i = 0; i < buffSize; i++){
+          trimArray[i] = buffer.array()[i];
+        }
+        byte[] buff = ct.decrypt(trimArray, skey,  iv);
+
+        String message = new String(buff);
+
         if(message.trim().equals("Enter your message:")){
           System.out.printf(message);
         }else if(message.trim().equals("-17b482--exit/call")){

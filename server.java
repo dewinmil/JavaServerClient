@@ -84,8 +84,8 @@ class serverThread extends Thread{
   String key = new String(Long.toString(id));
   ByteBuffer buffer = ByteBuffer.allocate(256);
 
+  cryptotest ct = new cryptotest();
   public void run(){
-    cryptotest ct = new cryptotest();
     ct.setPrivateKey("RSApriv.der");
     try{
 
@@ -148,8 +148,9 @@ class serverThread extends Thread{
                 System.out.println(keys);
                 serverThread t = threadMap.get(keys);
                 String user = hash.get(key);
-                t.sendToClient("Received from "+ user + ": " + parts[1]);
-                t.sendToClient("Enter your message: ");
+
+                t.sendToClient("Received from "+ user + ": " + parts[1], keys);
+                t.sendToClient("Enter your message: ", keys);
               }
             } 
           }
@@ -162,8 +163,8 @@ class serverThread extends Thread{
             if(!keys.equals(key)){
               System.out.println(keys);
               serverThread t = threadMap.get(keys);
-              t.sendToClient("Received from "+ user + ": " + parts[1]);
-              t.sendToClient("Enter your message: "); 
+              t.sendToClient("Received from "+ user + ": " + parts[1], keys);
+              t.sendToClient("Enter your message: ", keys); 
             }
           } 
         }
@@ -177,11 +178,12 @@ class serverThread extends Thread{
                 System.out.println("found name");
                 serverThread t = threadMap.get(keys);
                 //t.interrupt();
-                t.sendToClient("-17b482--exit/call");
+                t.sendToClient("-17b482--exit/call", keys);
                 t.breakLoop();
                 
                 hash.remove(keys);
-                threadMap.remove(keys); 
+                threadMap.remove(keys);
+                keyHash.remove(keys); 
               }
             }
           } 
@@ -214,9 +216,16 @@ class serverThread extends Thread{
   }
 
 
-  public void sendToClient(String message){
+  public void sendToClient(String message, String keys){
     try{
-      ByteBuffer buffs = ByteBuffer.wrap(message.getBytes());
+      
+      SecretKey skey = new SecretKeySpec(keyHash.get(keys), 0, keyHash.get(keys).length, "AES");
+
+      byte[] randBytes = new byte[16];
+      IvParameterSpec iv = new IvParameterSpec(randBytes);
+      ByteBuffer buffs = ByteBuffer.wrap(ct.encrypt(message.getBytes(), skey, iv));
+      ByteBuffer randBuffer = ByteBuffer.wrap(randBytes);
+      sc.write(randBuffer);
       sc.write(buffs);
     }catch(IOException e){
       System.out.println("Caught IO Exception - sendToClient");
