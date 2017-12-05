@@ -29,8 +29,6 @@ class client
       
  
       String m = cons.readLine("Enter your userName: ");
-      //buff = ByteBuffer.wrap(m.getBytes());
-      //ByteBuffer rec = ByteBuffer.allocate(4096);
       SecureRandom random = new SecureRandom();
       byte[] randBytes = new byte[16];
       random.nextBytes(randBytes);
@@ -38,9 +36,8 @@ class client
       buff = ByteBuffer.wrap(ct.encrypt(m.getBytes(), skey, iv));
 
       ByteBuffer randBuffer = ByteBuffer.wrap(randBytes);
-      System.out.println(sc.write(randBuffer));
-      //sc.write(buff);
-      System.out.println(sc.write(buff));
+      sc.write(randBuffer);
+      sc.write(buff);
 
       clientThread t = new clientThread(sc, skey, ct);
       t.start();
@@ -53,7 +50,6 @@ class client
           random.nextBytes(randBytes);
           iv = new IvParameterSpec(randBytes);
           buff = ByteBuffer.wrap(ct.encrypt(m.getBytes(), skey, iv));
-          //buff = ByteBuffer.wrap(m.getBytes());
           randBuffer = ByteBuffer.wrap(randBytes);
           sc.write(randBuffer);
           sc.write(buff);

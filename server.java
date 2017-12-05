@@ -126,88 +126,84 @@ class serverThread extends Thread{
         buffer = ByteBuffer.allocate(4096);
 
         buffSize = sc.read(buffer);
+        
+        if(buffSize > -1){
+          trimArray = new byte[buffSize];
+        
+          for(int i = 0; i < buffSize; i++){
+            trimArray[i] = buffer.array()[i];
+          }
 
-        trimArray = new byte[buffSize];
-      
-        for(int i = 0; i < buffSize; i++){
-          trimArray[i] = buffer.array()[i];
-        }
+          buff = ct.decrypt(trimArray, skey, iv);
 
-        buff = ct.decrypt(trimArray, skey, iv);
+          message = new String(buff);
+          System.out.println(message);
+          if(message.trim().equals("exit")){
+            loop = false;
+          }
+          String parts[] = message.split(" ", 2);
+          if(hash.containsValue(parts[0].substring(1))){
+            if(parts[0].substring(0,1).equals("-")){
+              for(String keys: Collections.list(hash.keys())){  
+                if(hash.get(keys).equals(parts[0].substring(1))){
+                  System.out.println(keys);
+                  serverThread t = threadMap.get(keys);
+                  String user = hash.get(key);
 
-        message = new String(buff);
-        System.out.println(message);
-        if(message.trim().equals("exit")){
-          loop = false;
-        }
-        String parts[] = message.split(" ", 2);
-        if(hash.containsValue(parts[0].substring(1))){
-          if(parts[0].substring(0,1).equals("-")){
-            for(String keys: Collections.list(hash.keys())){  
-              if(hash.get(keys).equals(parts[0].substring(1))){
+                  t.sendToClient("Received from "+ user + ": " + parts[1], keys);
+                  t.sendToClient("Enter your message: ", keys);
+                }
+              } 
+            }
+          }
+
+       
+          if(parts[0].equals("-broadcast")){
+            String user = hash.get(key);
+            for(String keys: Collections.list(hash.keys())){
+              if(!keys.equals(key)){
                 System.out.println(keys);
                 serverThread t = threadMap.get(keys);
-                String user = hash.get(key);
-
                 t.sendToClient("Received from "+ user + ": " + parts[1], keys);
-                t.sendToClient("Enter your message: ", keys);
+                t.sendToClient("Enter your message: ", keys); 
               }
             } 
           }
-        }
 
-       
-        if(parts[0].equals("-broadcast")){
-          String user = hash.get(key);
-          for(String keys: Collections.list(hash.keys())){
-            if(!keys.equals(key)){
-              System.out.println(keys);
-              serverThread t = threadMap.get(keys);
-              t.sendToClient("Received from "+ user + ": " + parts[1], keys);
-              t.sendToClient("Enter your message: ", keys); 
-            }
-          } 
-        }
-
-        if(parts[0].equals("-remove")){
-          System.out.println("is remove");
-          if(hash.containsValue(parts[1].trim())){
-          System.out.println("valid name");
-            for(String keys: Collections.list(hash.keys())){
-              if(hash.get(keys).equals(parts[1].trim())){
-                System.out.println("found name");
-                serverThread t = threadMap.get(keys);
-                //t.interrupt();
-                t.sendToClient("-17b482--exit/call", keys);
-                t.breakLoop();
+          if(parts[0].equals("-remove")){
+            System.out.println("is remove");
+            if(hash.containsValue(parts[1].trim())){
+            System.out.println("valid name");
+              for(String keys: Collections.list(hash.keys())){
+                if(hash.get(keys).equals(parts[1].trim())){
+                  System.out.println("found name");
+                  serverThread t = threadMap.get(keys);
+                  //t.interrupt();
+                  t.sendToClient("-17b482--exit/call", keys);
+                  t.breakLoop();
                 
-                hash.remove(keys);
-                threadMap.remove(keys);
-                keyHash.remove(keys); 
+                  hash.remove(keys);
+                  threadMap.remove(keys);
+                  keyHash.remove(keys); 
+                }
               }
-            }
-          } 
-        }
-
-
-
-
-    if(message.trim().equals("-users")){
-          String list = "";
-          for(String str: hash.values()){  
-             list += str + "\n";
+            } 
           }
-            //buffer = ByteBuffer.allocate(4096);
-            //buffer = ByteBuffer.wrap(list.getBytes());
-            sendToClient(list, key);
-            //sc.write(buffer);
 
-            System.out.println(list);
-            String str = "Enter your message: ";
-            //buffer = ByteBuffer.allocate(4096);
-            //buffer = ByteBuffer.wrap(str.getBytes());
-            sendToClient(str, key);
-            //sc.write(buffer);
+
+
+
+          if(message.trim().equals("-users")){
+            String list = "";
+            for(String str: hash.values()){  
+               list += str + "\n";
+            }
+              sendToClient(list, key);
+
+              System.out.println(list);
+              String str = "Enter your message: ";
+              sendToClient(str, key);
+          }
         }
       }
     }
