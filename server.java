@@ -197,15 +197,17 @@ class serverThread extends Thread{
           for(String str: hash.values()){  
              list += str + "\n";
           }
-            buffer = ByteBuffer.allocate(4096);
-            buffer = ByteBuffer.wrap(list.getBytes());
-            sc.write(buffer);
+            //buffer = ByteBuffer.allocate(4096);
+            //buffer = ByteBuffer.wrap(list.getBytes());
+            sendToClient(list, key);
+            //sc.write(buffer);
 
             System.out.println(list);
             String str = "Enter your message: ";
-            buffer = ByteBuffer.allocate(4096);
-            buffer = ByteBuffer.wrap(str.getBytes());
-            sc.write(buffer);
+            //buffer = ByteBuffer.allocate(4096);
+            //buffer = ByteBuffer.wrap(str.getBytes());
+            sendToClient(str, key);
+            //sc.write(buffer);
         }
       }
     }
