@@ -88,26 +88,28 @@ class serverThread extends Thread{
     cryptotest ct = new cryptotest();
     ct.setPrivateKey("RSApriv.der");
     try{
+
       sc.read(buffer);
       byte clientKey[] = ct.RSADecrypt(buffer.array());
       keyHash.put(key, clientKey);
 
-      SecureRandom random = new SecureRandom();
-      random.setSeed(clientKey);
       byte[] randBytes = new byte[16];
-      random.nextBytes(randBytes);
-      System.out.println(randBytes);
-      IvParameterSpec iv = new IvParameterSpec(randBytes);
       SecretKey skey = new SecretKeySpec(clientKey, 0, clientKey.length, "AES");
-     
-      buffer = ByteBuffer.allocate(4096);
-     
 
-
-      
+      buffer = ByteBuffer.allocate(16);
       sc.read(buffer);
-      System.out.println(buffer.position());
-      byte buff[] = ct.decrypt(buffer.array(), skey, iv);
+      randBytes = buffer.array();
+      IvParameterSpec iv = new IvParameterSpec(randBytes);
+
+      buffer = ByteBuffer.allocate(4096);
+      int buffSize = sc.read(buffer);
+      byte[] trimArray = new byte[buffSize];
+      
+      for(int i = 0; i < buffSize; i++){
+        trimArray[i] = buffer.array()[i];
+      }
+      
+      byte buff[] = ct.decrypt(trimArray, skey, iv);
       //String message = new String(buffer.array());
       String message = new String(buff);
       System.out.println("added ID to hash: " + id);
@@ -115,9 +117,25 @@ class serverThread extends Thread{
       hash.put(key, message.trim());
       
       while(loop){
-        buffer = ByteBuffer.allocate(4096);
+        buffer = ByteBuffer.allocate(16);
         sc.read(buffer);
-        message = new String(buffer.array());
+
+        randBytes = buffer.array();
+        iv = new IvParameterSpec(randBytes);
+      
+        buffer = ByteBuffer.allocate(4096);
+
+        buffSize = sc.read(buffer);
+
+        trimArray = new byte[buffSize];
+      
+        for(int i = 0; i < buffSize; i++){
+          trimArray[i] = buffer.array()[i];
+        }
+
+        buff = ct.decrypt(trimArray, skey, iv);
+
+        message = new String(buff);
         System.out.println(message);
         if(message.trim().equals("exit")){
           loop = false;
@@ -210,3 +228,12 @@ class serverThread extends Thread{
   }
 
 }
+
+
+
+
+
+
+
+
+

@@ -25,26 +25,37 @@ class client
       Console cons = System.console();
       ByteBuffer buff = ByteBuffer.wrap(encrypted);
       sc.write(buff);
+
+      
  
       String m = cons.readLine("Enter your userName: ");
       //buff = ByteBuffer.wrap(m.getBytes());
       //ByteBuffer rec = ByteBuffer.allocate(4096);
       SecureRandom random = new SecureRandom();
-      random.setSeed(skey.getEncoded());
       byte[] randBytes = new byte[16];
       random.nextBytes(randBytes);
-      System.out.println(randBytes);
       IvParameterSpec iv = new IvParameterSpec(randBytes);
       buff = ByteBuffer.wrap(ct.encrypt(m.getBytes(), skey, iv));
-      sc.write(buff);
-      
+
+      ByteBuffer randBuffer = ByteBuffer.wrap(randBytes);
+      System.out.println(sc.write(randBuffer));
+      //sc.write(buff);
+      System.out.println(sc.write(buff));
+
       clientThread t = new clientThread(sc);
       t.start();
       boolean loop = true;
       while(loop){
         m = cons.readLine("Enter your message: ");
         if(t.isAlive()){
-          buff = ByteBuffer.wrap(m.getBytes());
+
+          randBytes = new byte[16];
+          random.nextBytes(randBytes);
+          iv = new IvParameterSpec(randBytes);
+          buff = ByteBuffer.wrap(ct.encrypt(m.getBytes(), skey, iv));
+          //buff = ByteBuffer.wrap(m.getBytes());
+          randBuffer = ByteBuffer.wrap(randBytes);
+          sc.write(randBuffer);
           sc.write(buff);
           if(m.equals("exit")){
             loop = false;
